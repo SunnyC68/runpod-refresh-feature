@@ -16,14 +16,15 @@ WORKDIR /app/ComfyUI
 # Install ComfyUI's Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Install ALL 8 Custom Nodes from Your Screenshot ---
+# --- Install ALL 8 Custom Nodes (with the corrected link) ---
 RUN git clone https://github.com/Fannovel16/comfyui_controlnet_aux.git ./custom_nodes/comfyui_controlnet_aux
 RUN git clone https://github.com/asagi4/comfyui-adaptive-guidance.git ./custom_nodes/comfyui-adaptive-guidance
 RUN git clone https://github.com/cubiq/ComfyUI_essentials.git ./custom_nodes/ComfyUI_essentials
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git ./custom_nodes/ComfyUI-KJNodes
 RUN git clone https://github.com/chibiace/ComfyUI-Chibi-Nodes.git ./custom_nodes/ComfyUI-Chibi-Nodes
 RUN git clone https://github.com/TheBill2001/comfyui-upscale-by-model.git ./custom_nodes/comfyui-upscale-by-model
-RUN git clone https://github.com/goktug99/ComfyUI-SaveImage-Plus.git ./custom_nodes/ComfyUI-SaveImage-Plus
+# --- THIS IS THE CORRECTED LINE ---
+RUN git clone https://github.com/pashri/Save-Image-Plus.git ./custom_nodes/Save-Image-Plus
 RUN git clone https://github.com/ltamann/TBG_Enhanced_Tiled_Upscaler_and_Refiner.git ./custom_nodes/TBG_Enhanced_Tiled_Upscaler_and_Refiner
 
 # Go back to the root directory for the handler
