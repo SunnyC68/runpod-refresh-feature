@@ -4,8 +4,8 @@ FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
 # Set the working directory
 WORKDIR /app
 
-# Install essential tools and clear the cache
-RUN apt-get update && apt-get install -y git && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Install essential tools (git and now unzip) and clear the cache
+RUN apt-get update && apt-get install -y git unzip && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone the ComfyUI repository
 RUN git clone https://github.com/comfyanonymous/ComfyUI.git
@@ -16,15 +16,18 @@ WORKDIR /app/ComfyUI
 # Install ComfyUI's Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Install ALL 8 Custom Nodes (with the corrected link) ---
+# --- Install ALL 8 Custom Nodes (with the robust download method) ---
 RUN git clone https://github.com/Fannovel16/comfyui_controlnet_aux.git ./custom_nodes/comfyui_controlnet_aux
 RUN git clone https://github.com/asagi4/comfyui-adaptive-guidance.git ./custom_nodes/comfyui-adaptive-guidance
 RUN git clone https://github.com/cubiq/ComfyUI_essentials.git ./custom_nodes/ComfyUI_essentials
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes.git ./custom_nodes/ComfyUI-KJNodes
 RUN git clone https://github.com/chibiace/ComfyUI-Chibi-Nodes.git ./custom_nodes/ComfyUI-Chibi-Nodes
 RUN git clone https://github.com/TheBill2001/comfyui-upscale-by-model.git ./custom_nodes/comfyui-upscale-by-model
-# --- THIS IS THE CORRECTED LINE ---
-RUN git clone https://github.com/pashri/Save-Image-Plus.git ./custom_nodes/Save-Image-Plus
+# --- THIS IS THE NEW, ROBUST METHOD FOR THE FAILED NODE ---
+RUN wget -O save-image-plus.zip https://github.com/pashri/Save-Image-Plus/archive/refs/heads/main.zip \
+    && unzip save-image-plus.zip -d ./custom_nodes \
+    && mv ./custom_nodes/Save-Image-Plus-main ./custom_nodes/Save-Image-Plus \
+    && rm save-image-plus.zip
 RUN git clone https://github.com/ltamann/TBG_Enhanced_Tiled_Upscaler_and_Refiner.git ./custom_nodes/TBG_Enhanced_Tiled_Upscaler_and_Refiner
 
 # Go back to the root directory for the handler
