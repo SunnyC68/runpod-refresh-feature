@@ -1,5 +1,5 @@
-# Start from a RunPod image with the necessary GPU drivers (CUDA 12)
-FROM runpod/pytorch:2.3.0-py3.11-cuda12.1.1-devel-ubuntu22.04
+# Start from a verified RunPod image with Python and GPU drivers
+FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 # Set the working directory
 WORKDIR /app
