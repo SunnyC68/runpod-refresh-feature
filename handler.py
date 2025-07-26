@@ -25,19 +25,17 @@ def start_comfyui():
     global comfyui_process
     comfyui_path = "/app/ComfyUI/main.py"
     
-    # IMPORTANT: These paths MUST match your RunPod Network Volume structure.
-    # The default volume is mounted at /runpod-volume/
-    # If your model folders are inside, the paths should be as below.
+    # IMPORTANT: These paths now point to /workspace to match the volume mount path.
     args = [
         "python", "-u", comfyui_path,
         "--port", str(COMFYUI_PORT),
         "--listen", "0.0.0.0",
         "--dont-print-server",
-        "--checkpoints-dir", "/runpod-volume/ComfyUI/models/checkpoints",
-        "--controlnet-dir", "/runpod-volume/ComfyUI/models/controlnet",
-        "--vae-dir", "/runpod-volume/ComfyUI/models/vae",
-        "--lora-dir", "/runpod-volume/ComfyUI/models/loras",
-        "--upscale-models-dir", "/runpod-volume/ComfyUI/models/upscale_models"
+        "--checkpoints-dir", "/workspace/ComfyUI/models/checkpoints",
+        "--controlnet-dir", "/workspace/ComfyUI/models/controlnet",
+        "--vae-dir", "/workspace/ComfyUI/models/vae",
+        "--lora-dir", "/workspace/ComfyUI/models/loras",
+        "--upscale-models-dir", "/workspace/ComfyUI/models/upscale_models"
     ]
     
     comfyui_process = subprocess.Popen(args)
