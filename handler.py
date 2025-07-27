@@ -29,10 +29,11 @@ print(f"🐍 Python executable: {sys.executable}")
 
 # --- Global variable to hold the ComfyUI server process ---
 comfyui_process = None
+comfyui_ready = False
 
 # --- Function to start the ComfyUI server ---
 def start_comfyui():
-    global comfyui_process
+    global comfyui_process, comfyui_ready
     try:
         print("🚀 Starting ComfyUI server...")
         comfyui_path = "/app/ComfyUI/main.py"
@@ -49,32 +50,12 @@ def start_comfyui():
             
         print(f"✅ Found ComfyUI at {comfyui_path}")
         
-        # Check workspace paths exist
-        workspace_paths = [
-            "/workspace/ComfyUI/models/checkpoints",
-            "/workspace/ComfyUI/models/controlnet", 
-            "/workspace/ComfyUI/models/vae",
-            "/workspace/ComfyUI/models/loras",
-            "/workspace/ComfyUI/models/upscale_models"
-        ]
-        
-        for path in workspace_paths:
-            if os.path.exists(path):
-                print(f"✅ Found: {path}")
-            else:
-                print(f"⚠️  Missing: {path}")
-        
         # Use the same Python interpreter that's running this script
         args = [
             sys.executable, "-u", comfyui_path,
             "--port", str(COMFYUI_PORT),
             "--listen", "0.0.0.0",
-            "--dont-print-server",
-            "--checkpoints-dir", "/workspace/ComfyUI/models/checkpoints",
-            "--controlnet-dir", "/workspace/ComfyUI/models/controlnet",
-            "--vae-dir", "/workspace/ComfyUI/models/vae",
-            "--lora-dir", "/workspace/ComfyUI/models/loras",
-            "--upscale-models-dir", "/workspace/ComfyUI/models/upscale_models"
+            "--dont-print-server"
         ]
         
         print(f"🔧 ComfyUI command: {' '.join(args)}")
@@ -95,6 +76,7 @@ def start_comfyui():
                 response = requests.get(f"{COMFYUI_URL}/history/{CLIENT_ID}", timeout=5)
                 if response.status_code == 200:
                     print("✅ ComfyUI server is ready!")
+                    comfyui_ready = True
                     return
             except requests.exceptions.RequestException as e:
                 print(f"⏳ Waiting for ComfyUI server... attempt {attempt + 1}/{max_attempts} ({e})")
@@ -155,6 +137,12 @@ def handler(event):
     try:
         print("=== 🎯 Handler started ===")
         print(f"📨 Event received: {event}")
+        
+        # Check if ComfyUI is ready
+        if not comfyui_ready:
+            error_msg = "ComfyUI server is not ready. Please wait for initialization to complete."
+            print(f"❌ {error_msg}")
+            return {"error": error_msg}
         
         job_input = event.get("input", {})
         print(f"📋 Job input: {job_input}")
