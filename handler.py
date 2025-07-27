@@ -18,7 +18,6 @@ except Exception as e:
     print(f"❌ Import error: {e}")
     import traceback
     traceback.print_exc()
-    exit(1)
 
 # --- Configuration ---
 COMFYUI_PORT = 8188
