@@ -62,10 +62,11 @@ def start_comfyui():
         comfyui_process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print("🏁 ComfyUI process started, waiting for server...")
         
-        # Wait until the server is ready
-        max_attempts = 60  # 60 seconds timeout
+        # Wait until the server is ready - increased timeout and better checking
+        max_attempts = 120  # 2 minutes timeout (was 60 seconds)
         for attempt in range(max_attempts):
             try:
+                # Check if process is still running
                 if comfyui_process.poll() is not None:
                     stdout, stderr = comfyui_process.communicate()
                     print(f"❌ ComfyUI process exited early!")
@@ -73,18 +74,39 @@ def start_comfyui():
                     print(f"📤 STDERR: {stderr}")
                     return
                 
-                response = requests.get(f"{COMFYUI_URL}/history/{CLIENT_ID}", timeout=5)
-                if response.status_code == 200:
-                    print("✅ ComfyUI server is ready!")
-                    comfyui_ready = True
-                    return
-            except requests.exceptions.RequestException as e:
+                # Try multiple endpoints to check if server is ready
+                endpoints_to_check = [
+                    f"{COMFYUI_URL}/history/{CLIENT_ID}",
+                    f"{COMFYUI_URL}/queue",
+                    f"{COMFYUI_URL}/system_stats"
+                ]
+                
+                for endpoint in endpoints_to_check:
+                    try:
+                        response = requests.get(endpoint, timeout=3)
+                        if response.status_code == 200:
+                            print("✅ ComfyUI server is ready!")
+                            comfyui_ready = True
+                            return
+                        break  # If we get any response, try the next check cycle
+                    except requests.exceptions.RequestException:
+                        continue  # Try next endpoint
+                        
+            except Exception as e:
                 print(f"⏳ Waiting for ComfyUI server... attempt {attempt + 1}/{max_attempts} ({e})")
-                time.sleep(1)
+            
+            time.sleep(1)
         
-        print("❌ ComfyUI server failed to start within 60 seconds")
-        if comfyui_process.poll() is None:
+        print("❌ ComfyUI server failed to start within 2 minutes")
+        if comfyui_process and comfyui_process.poll() is None:
             print("🔍 ComfyUI process still running but not responding")
+            # Get some output to help debug
+            try:
+                stdout, stderr = comfyui_process.communicate(timeout=5)
+                print(f"📤 STDOUT: {stdout[-1000:]}")  # Last 1000 chars
+                print(f"📤 STDERR: {stderr[-1000:]}")   # Last 1000 chars
+            except:
+                print("❌ Could not get process output")
         
     except Exception as e:
         print(f"❌ Error starting ComfyUI: {e}")
@@ -138,11 +160,19 @@ def handler(event):
         print("=== 🎯 Handler started ===")
         print(f"📨 Event received: {event}")
         
-        # Check if ComfyUI is ready
+        # Check if ComfyUI is ready, wait up to 30 seconds if not
         if not comfyui_ready:
-            error_msg = "ComfyUI server is not ready. Please wait for initialization to complete."
-            print(f"❌ {error_msg}")
-            return {"error": error_msg}
+            print("⏳ ComfyUI not ready yet, waiting up to 30 seconds...")
+            for wait_attempt in range(30):
+                if comfyui_ready:
+                    print("✅ ComfyUI is now ready!")
+                    break
+                print(f"⏳ Waiting for ComfyUI... {wait_attempt + 1}/30 seconds")
+                time.sleep(1)
+            else:
+                error_msg = "ComfyUI server is not ready after waiting. Please try again later."
+                print(f"❌ {error_msg}")
+                return {"error": error_msg}
         
         job_input = event.get("input", {})
         print(f"📋 Job input: {job_input}")
