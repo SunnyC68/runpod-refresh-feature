@@ -1,0 +1,51 @@
+# Start from a verified RunPod image with Python and GPU drivers
+FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
+
+# Set the working directory
+WORKDIR /app
+
+# Install essential tools and clear the cache in one layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Clone the ComfyUI repository
+RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git
+
+# Set the working directory to ComfyUI
+WORKDIR /app/ComfyUI
+
+# Install ComfyUI's Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install ALL custom nodes in a single layer for better caching
+RUN git clone --depth 1 https://github.com/Fannovel16/comfyui_controlnet_aux.git ./custom_nodes/comfyui_controlnet_aux && \
+    git clone --depth 1 https://github.com/asagi4/comfyui-adaptive-guidance.git ./custom_nodes/comfyui-adaptive-guidance && \
+    git clone --depth 1 https://github.com/cubiq/ComfyUI_essentials.git ./custom_nodes/ComfyUI_essentials && \
+    git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git ./custom_nodes/ComfyUI-KJNodes && \
+    git clone --depth 1 https://github.com/chibiace/ComfyUI-Chibi-Nodes.git ./custom_nodes/ComfyUI-Chibi-Nodes && \
+    git clone --depth 1 https://github.com/TheBill2001/comfyui-upscale-by-model.git ./custom_nodes/comfyui-upscale-by-model && \
+    git clone --depth 1 https://github.com/Goktug/comfyui-saveimage-plus.git ./custom_nodes/Save-Image-Plus && \
+    git clone --depth 1 https://github.com/Ltamann/ComfyUI-TBG-ETUR.git ./custom_nodes/ComfyUI-TBG-ETUR
+
+# Install dependencies for custom nodes with better error handling
+RUN find ./custom_nodes -name "requirements.txt" -print0 | \
+    xargs -0 -I {} sh -c 'echo "Installing requirements from: {}" && pip install --no-cache-dir -r "{}"' && \
+    echo "Custom node dependencies installation completed"
+
+# Create necessary directories
+RUN mkdir -p input output temp
+
+# Copy handler requirements first (better caching - changes less frequently)
+COPY handler_requirements.txt /app/
+RUN pip install --no-cache-dir -r /app/handler_requirements.txt
+
+# Copy the handler script (this should be last as it changes most frequently)
+COPY handler.py /app/
+
+# Set the working directory back to app root
+WORKDIR /app
+
+# Set the command to run the handler when the worker starts
+CMD ["python", "-u", "/app/handler.py"]
