@@ -531,15 +531,14 @@ def handler(event):
         traceback.print_exc()
         return {"error": str(e), "traceback": traceback.format_exc()}
 
-# Test locally if run directly
+# ---------------------------------------------------------------------------- #
+#                                Server Startup                                #
+# ---------------------------------------------------------------------------- #
 if __name__ == "__main__":
-    print("🧪 === Testing handler locally ===")
-    test_event = {"input": {"prompt": "test prompt", "seed": 12345}}
-    result = handler(test_event)
-    print(f"📊 Result: {result}")
-else:
     print("🚀 Starting RunPod serverless...")
     try:
+        # This will start the server on RunPod,
+        # or run a single job if test_input.json is present locally.
         runpod.serverless.start({"handler": handler})
     except Exception as e:
         print(f"💥 CRITICAL ERROR starting RunPod serverless: {e}")
