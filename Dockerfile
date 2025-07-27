@@ -26,6 +26,12 @@ RUN git clone --depth 1 https://github.com/TheBill2001/comfyui-upscale-by-model.
 RUN git clone --depth 1 https://github.com/Goktug/comfyui-saveimage-plus.git ./custom_nodes/Save-Image-Plus
 RUN git clone --depth 1 https://github.com/Ltamann/ComfyUI-TBG-ETUR.git ./custom_nodes/ComfyUI-TBG-ETUR
 
+# Install dependencies for custom nodes that have requirements
+RUN find ./custom_nodes -name "requirements.txt" -exec pip install --no-cache-dir -r {} \; || true
+
+# Create necessary directories
+RUN mkdir -p input output temp
+
 # Go back to the root directory for the handler
 WORKDIR /app
 
