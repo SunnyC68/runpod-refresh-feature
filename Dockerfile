@@ -1,5 +1,5 @@
-# Start from RunPod community image with CUDA 12.8, Python 3.12, PyTorch 2.7.1
-FROM ashleykleynhans/runpod-base:py312-cu128-torch271
+# Start from a verified NVIDIA CUDA image with latest GPU drivers and CUDA 12.8
+FROM nvidia/cuda:12.8.0-cudnn-devel-ubuntu22.04
 
 # Performance environment variables (from official ComfyUI Dockerfile)
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,9 +10,13 @@ ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 # Set the working directory
 WORKDIR /app
 
-# Install additional system dependencies needed for ComfyUI
+# Install Python and a comprehensive set of system packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        python3 \
+        python3-pip \
+        python3-dev \
+        python3-venv \
         git \
         curl \
         wget \
@@ -57,13 +61,16 @@ RUN apt-get update && \
         && apt-get clean -y \
         && rm -rf /var/lib/apt/lists/*
 
-# Install uv for faster package management (from official ComfyUI Dockerfile)
+# Create Python symlink for better compatibility
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+# Install uv for faster package management
 RUN wget -qO- https://astral.sh/uv/install.sh | sh \
     && ln -s /root/.local/bin/uv /usr/local/bin/uv \
     && ln -s /root/.local/bin/uvx /usr/local/bin/uvx \
     && uv venv /opt/venv
 
-# Use the virtual environment for all subsequent commands (like official)
+# Use the virtual environment for all subsequent commands
 ENV PATH="/opt/venv/bin:${PATH}"
 
 # Clone the ComfyUI repository
@@ -71,6 +78,11 @@ RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git
 
 # Set the working directory to ComfyUI and install dependencies
 WORKDIR /app/ComfyUI
+
+# Install PyTorch with CUDA 12.8 support first
+RUN uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+
+# Install ComfyUI requirements
 RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Install ALL custom nodes in a single layer for better caching
