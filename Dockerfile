@@ -10,7 +10,7 @@ ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 # Set the working directory
 WORKDIR /app
 
-# Install Python and a comprehensive set of system packages
+# Install Python and essential tools (minimal set required)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -20,46 +20,15 @@ RUN apt-get update && \
         git \
         curl \
         wget \
-        build-essential \
-        cmake \
-        pkg-config \
-        libgl1-mesa-glx \
         libgl1 \
         libglib2.0-0 \
         libsm6 \
         libxext6 \
         libxrender1 \
-        libgomp1 \
-        libgoogle-perftools4 \
-        libtcmalloc-minimal4 \
         ffmpeg \
-        libavcodec-dev \
-        libavformat-dev \
-        libavutil-dev \
-        libswscale-dev \
-        libopencv-dev \
-        python3-opencv \
-        libopenblas-dev \
-        liblapack-dev \
-        libeigen3-dev \
-        libatlas-base-dev \
-        libjpeg-dev \
-        libpng-dev \
-        libtiff-dev \
-        libwebp-dev \
-        zlib1g-dev \
-        liblcms2-dev \
-        libfreetype6-dev \
-        libfribidi-dev \
-        libharfbuzz-dev \
-        libjpeg-turbo8-dev \
-        libopenjp2-7-dev \
-        libimagequant-dev \
-        libraqm-dev \
-        libxcb1-dev \
-        && apt-get autoremove -y \
-        && apt-get clean -y \
-        && rm -rf /var/lib/apt/lists/*
+    && apt-get autoremove -y \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create Python symlink for better compatibility
 RUN ln -s /usr/bin/python3 /usr/bin/python
@@ -99,41 +68,6 @@ RUN git clone --depth 1 https://github.com/Fannovel16/comfyui_controlnet_aux.git
 RUN find ./custom_nodes -name "requirements.txt" -print0 | \
     xargs -0 -I {} sh -c 'echo "Installing requirements from: {}" && uv pip install --no-cache-dir -r "{}"' && \
     echo "Custom node dependencies installation completed"
-
-# Install additional Python packages commonly needed by custom nodes
-RUN uv pip install --no-cache-dir \
-        numpy \
-        scipy \
-        scikit-image \
-        scikit-learn \
-        matplotlib \
-        seaborn \
-        opencv-python \
-        opencv-contrib-python \
-        Pillow \
-        imageio \
-        tqdm \
-        requests \
-        aiohttp \
-        websockets \
-        psutil \
-        GPUtil \
-        accelerate \
-        diffusers \
-        transformers \
-        tokenizers \
-        safetensors \
-        omegaconf \
-        pyyaml \
-        einops \
-        timm \
-        open-clip-torch \
-        clip-by-openai \
-        ftfy \
-        regex \
-        sentencepiece \
-        protobuf \
-        && echo "Additional Python packages installation completed"
 
 # Create necessary directories
 RUN mkdir -p input output temp
