@@ -26,7 +26,7 @@ COMFYUI_URL = f"http://{COMFYUI_HOST}"
 SERVER_CHECK_TIMEOUT = 3
 WEBSOCKET_TIMEOUT = 10
 MAX_EXECUTION_TIME = 120
-COMFYUI_STARTUP_TIMEOUT = 60
+COMFYUI_STARTUP_TIMEOUT = 1000 # Increased timeout to 3 minutes
 
 # WebSocket reconnection settings (from official handler)
 WEBSOCKET_RECONNECT_ATTEMPTS = int(os.environ.get("WEBSOCKET_RECONNECT_ATTEMPTS", 5))
@@ -92,7 +92,7 @@ def _attempt_websocket_reconnect(ws_url, max_attempts, delay_s, initial_error):
     raise websocket.WebSocketConnectionClosedException(f"Connection closed and failed to reconnect. Last error: {last_reconnect_error}")
 
 def start_comfyui():
-    """Start ComfyUI with better error handling"""
+    """Start ComfyUI with better error handling and a more patient wait."""
     global comfyui_process, comfyui_ready
     
     if comfyui_process and comfyui_process.poll() is None:
@@ -116,31 +116,47 @@ def start_comfyui():
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True, # Use text mode for easier log handling
             cwd="/app/ComfyUI"
         )
         
         print(f"handler-saas - ComfyUI started with PID: {comfyui_process.pid}")
         
-        # Wait for ComfyUI to be ready with better health checking
-        for attempt in range(COMFYUI_STARTUP_TIMEOUT):
+        # Patiently wait for ComfyUI to be ready
+        start_time = time.time()
+        while time.time() - start_time < COMFYUI_STARTUP_TIMEOUT:
             if comfyui_process.poll() is not None:
+                # Process has terminated, read logs to find out why
                 stdout, stderr = comfyui_process.communicate()
-                print(f"handler-saas - ComfyUI process died: {stderr.decode()}")
+                print(f"handler-saas - ComfyUI process terminated unexpectedly.")
+                print(f"handler-saas - STDOUT: {stdout}")
+                print(f"handler-saas - STDERR: {stderr}")
                 return False
             
             srv_status = _comfy_server_status()
             if srv_status["reachable"]:
                 comfyui_ready = True
-                print("handler-saas - ComfyUI is ready!")
+                print(f"handler-saas - ComfyUI is ready! (took {time.time() - start_time:.2f} seconds)")
                 return True
             
+            # Print a waiting message every 10 seconds
+            if int(time.time() - start_time) % 10 == 0:
+                 print(f"handler-saas - Waiting for ComfyUI to be ready... ({int(time.time() - start_time)}s elapsed)")
+
             time.sleep(1)
         
-        print("handler-saas - ComfyUI failed to start within timeout")
+        # If loop finishes, it's a timeout
+        print(f"handler-saas - ComfyUI failed to start within the {COMFYUI_STARTUP_TIMEOUT} second timeout.")
+        comfyui_process.terminate() # Ensure the zombie process is killed
+        stdout, stderr = comfyui_process.communicate()
+        print(f"handler-saas - ComfyUI process terminated.")
+        print(f"handler-saas - STDOUT on timeout: {stdout}")
+        print(f"handler-saas - STDERR on timeout: {stderr}")
         return False
         
     except Exception as e:
         print(f"handler-saas - Failed to start ComfyUI: {e}")
+        print(traceback.format_exc())
         return False
 
 def check_comfyui_ready():
